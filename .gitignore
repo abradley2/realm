@@ -1,0 +1,9 @@
+node_modules/
+.merlin/
+.merlin
+.psc-ide-port
+.bsb.lock
+**/*.bs.js
+lib/
+*.bundle.js
+.vscode/

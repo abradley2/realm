@@ -1,0 +1,25 @@
+{
+  "name": "realm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rescript build && browserify src/Main.bs.js -o public/main.bundle.js",
+    "serve": "npm run build && http-server public",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^17.0.0",
+    "http-server": "^14.0.0",
+    "rescript": "^9.1.4"
+  },
+  "dependencies": {
+    "@most/core": "^1.6.1",
+    "@most/disposable": "^1.3.0",
+    "@most/scheduler": "^1.3.0",
+    "@most/types": "^1.1.0",
+    "morphdom": "^2.6.1"
+  }
+}
