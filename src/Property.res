@@ -1,6 +1,7 @@
 type attribute =
   | Id(string)
   | ClassName(string)
+  | Data(string, string)
 
 type event<'msg> =
   | OnClick('msg)

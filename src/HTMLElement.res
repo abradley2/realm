@@ -1,5 +1,7 @@
+open Belt
+
 // Document Functionality
-@val 
+@val
 external window: Dom.window = "window"
 
 @val @scope("window")
@@ -34,6 +36,9 @@ let getAttribute = (el, attr) => _getAttribute(el, attr)->Js.toOption
 @send
 external setAttribute: (Dom.htmlElement, string, string) => unit = "setAttribute"
 
+@send
+external removeAttribute: (Dom.htmlElement, string) => unit = "removeAttribute"
+
 // Add/Remove Event Listeners
 
 @send
@@ -62,8 +67,8 @@ let isInput = el => _isInput(el)->Js.toOption
 
 // Attribute Getters and Setters
 
-@get external _getChildren: Dom.htmlElement => Js.Array.array_like<Dom.htmlElement> = "children"
-let getChildren = el => _getChildren(el)->Js.Array.from
+@get external _getChildren: Dom.htmlElement => Js.Array2.array_like<Dom.htmlElement> = "children"
+let getChildren = el => _getChildren(el)->Js.Array2.from
 
 @get external getValue: Dom.htmlInputElement => string = "value"
 
@@ -74,3 +79,22 @@ let getChildren = el => _getChildren(el)->Js.Array.from
 @get external getId: Dom.htmlElement => string = "id"
 
 @set external setId: (Dom.htmlElement, string) => unit = "id"
+
+@get external getTextContent: Dom.text => string = "textContent"
+
+@set external setTextContent: (Dom.text, string) => unit = "textContent"
+
+type attr = {
+  name: string,
+  value: string,
+}
+
+@get external _getAttributes: Dom.htmlElement => Js.Array2.array_like<attr> = "attributes"
+let getAttributes = el => _getAttributes(el)->Js.Array2.from
+
+let getAttributesMap = el =>
+  _getAttributes(el)->Js.Array2.from->Js.Array2.reduce((attrMap, attr) => {
+    attrMap->HashMap.String.set(attr.name, attr.value)
+
+    attrMap
+  }, HashMap.String.fromArray([]))

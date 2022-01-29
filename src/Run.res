@@ -3,7 +3,7 @@ open Element
 type application<'msg, 'model> = {
   init: 'model,
   update: ('model, 'msg) => 'model,
-  view: 'model => streamElement<'msg>
+  view: 'model => node<'msg>
 }
 
 exception InvalidRoot(string)
@@ -37,7 +37,7 @@ let run = (app: application<'msg, 'model>, msg: 'msg, hostEl: Dom.htmlElement): 
         let nextModel = app.update(prevModel, msg)
         {
           seed: nextModel,
-          value: app.view(nextModel)
+          value: app.view(nextModel)->createElement
         }
       },
       app.init

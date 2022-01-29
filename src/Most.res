@@ -29,6 +29,33 @@ type rec scheduler = {
   cancel: scheduledTask => unit,
 }
 
+let createScheduler = (): scheduler => {
+  
+  let tasks = ref([])
+  let rec me = {
+    cancel: (t: scheduledTask) => (),
+    relative: (offset: offset) => {...me, currentTime: () => me.currentTime() + offset},
+    currentTime: () => Js.Date.now()->Js.Math.floor_int,
+    scheduleTask: (
+      . ~offset: offset,
+      ~delay: delay,
+      ~period: period,
+      ~task: task,
+    ): scheduledTask => {
+      {
+        task: task,
+        run: () => {
+          let _ = Js.Global.setTimeout(() => {
+            task.run(me.currentTime())
+          }, delay)
+        },
+        error: (err: error) => (),
+      }
+    },
+  }
+
+  me
+}
 
 type sink<'a> = {
   event: (. time, 'a) => unit,
@@ -119,7 +146,8 @@ let combineArray = (streams: array<stream<'a>>, fn: array<'a> => 'b) => _combine
 external _take: (int, stream<'a>) => stream<'a> = "take"
 let take = (stream, val) => _take(val, stream)
 
-// Scheduler
-@module("@most/scheduler")
-external newDefaultScheduler: unit => scheduler = "newDefaultScheduler"
+// // Scheduler
+// @module("@most/scheduler")
+// external _newDefaultScheduler: unit => scheduler = "newDefaultScheduler"
 
+let newDefaultScheduler = () => createScheduler()

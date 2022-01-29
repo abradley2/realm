@@ -32,6 +32,7 @@ type element =
 
 type rec streamElement<'msg> = {
   el: element,
+  vnode: node<'msg>,
   children: list<streamElement<'msg>>,
   stream: Most.stream<'msg>,
 }
@@ -80,12 +81,14 @@ let rec createElement = (n: node<'msg>): streamElement<'msg> => {
         el: Text(el),
         children: list{},
         stream: stream,
+        vnode: n,
       }
     }
   | tag => {
       let el = HTMLElement.createElement(tag)
 
       let children = n.children->List.map(createElement)
+
       let stream = addEvents(el, n.properties)
 
       addChildren(el, children->List.map(child => child.el))
@@ -95,20 +98,11 @@ let rec createElement = (n: node<'msg>): streamElement<'msg> => {
         el: Element(el),
         children: children,
         stream: children->List.map(child => child.stream)->combineStreams->Most.merge(stream),
+        vnode: n,
       }
     }
   }
 }
-
-let render = (n: node<'ms>, el: Dom.htmlElement): Most.stream<'msg> => {
-  let withStream = createElement(n)
-
-  switch withStream.el {
-  | Element(e) => HTMLElement.appendChild(el, e)
-  | Text(t) => HTMLElement.appendText(el, t)
-  }->(() => withStream.stream)
-}
-
 
 let div = createNode("div", _)
 let div' = createNode("div", _, list{})
