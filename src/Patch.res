@@ -52,7 +52,6 @@ let rec addEvents = (target, props) => {
   }
 }
 
-
 let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
   let fromEl = streamEl.el
   let fromNode = streamEl.vnode
@@ -78,11 +77,18 @@ let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>): Mos
       ->patchAttributes(toElement, toAttrs, fromAttrs)
 
       // remove attributes that exist on toEl, but not on fromEl
-      Set.String.diff(toAttrNames, fromAttrNames)
-      ->Set.String.toList
-      ->deleteAttributes(toElement)
+      Set.String.diff(toAttrNames, fromAttrNames)->Set.String.toList->deleteAttributes(toElement)
 
+      // we always need to add events
       streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
+
+      let toChildren = getChildren(toElement)
+      let fromChildren = getChildren(fromElement)
+      fromChildren->Js.Array2.forEachi((fromChild, idx) => {
+        let toChildElOpt = toChildren[idx]->Option.flatMap(HTMLElement.isElement)
+
+        ()
+      })
     }
   | (Text(toElement), Text(fromElement)) =>
     if getTextContent(toElement) != getTextContent(fromElement) {

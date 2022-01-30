@@ -22,6 +22,8 @@ external _querySelector: (Dom.htmlElement, string) => Js.null_undefined<Dom.html
 let querySelector = (el, q) => _querySelector(el, q)->Js.toOption
 
 // Transform Elements
+@send
+external insertBefore: (Dom.htmlElement, Dom.htmlElement) => unit = "insertBefore"
 
 @send
 external appendChild: (Dom.htmlElement, Dom.htmlElement) => unit = "appendChild"
@@ -56,9 +58,19 @@ let addEventListener = (el, ev, handler) => {
 
 // Check Class
 
-let _isInput: Dom.htmlElement => Js.null_undefined<
-  Dom.htmlInputElement,
-> = %raw(`function (el) { if (el instanceof HTMLInputElement) return el }`)
+let _isElement: Dom.node => Js.nullable<
+  Dom.htmlElement
+> = %raw(`function (el) { if (el instanceof HTMLElement) { return el }; return null }`)
+let isElement = el => _isElement(el)->Js.toOption
+
+let _isText: Dom.node => Js.nullable<
+  Dom.text
+> = %raw(`function (el) { if (el instanceof Text) { return el }; return null }`)
+let isText = (el) => _isText(el)->Js.toOption
+
+let _isInput: Dom.htmlElement => Js.nullable<
+    Dom.htmlInputElement
+> = %raw(`function (el) { if (el instanceof HTMLInputElement) { return el }; return null }`)
 let isInput = el => _isInput(el)->Js.toOption
 
 // Event Getters
@@ -67,7 +79,7 @@ let isInput = el => _isInput(el)->Js.toOption
 
 // Attribute Getters and Setters
 
-@get external _getChildren: Dom.htmlElement => Js.Array2.array_like<Dom.htmlElement> = "children"
+@get external _getChildren: Dom.htmlElement => Js.Array2.array_like<Dom.node> = "children"
 let getChildren = el => _getChildren(el)->Js.Array2.from
 
 @get external getValue: Dom.htmlInputElement => string = "value"
@@ -83,6 +95,9 @@ let getChildren = el => _getChildren(el)->Js.Array2.from
 @get external getTextContent: Dom.text => string = "textContent"
 
 @set external setTextContent: (Dom.text, string) => unit = "textContent"
+
+@get external _getNextElementSibling: Dom.htmlElement => Js.null<Dom.element_like<'a>> = "nextElementSibling"
+let getNextElementSibling = (el) => _getNextElementSibling(el)->Js.nullToOption
 
 type attr = {
   name: string,
