@@ -1,7 +1,8 @@
 open Belt
 open HTMLElement
 open Element
-open Attribute
+open Event
+open Property
 
 let rec patchAttributes = (
   attrs: list<string>,
@@ -43,9 +44,20 @@ let rec addAttributes = (
     }
   }
 
-let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>) => {
+let rec addEvents = (target, props) => {
+  switch props {
+  | list{Event(ev), ...next} => ev->applyEvent(target)->Most.merge(addEvents(target, next))
+  | list{_prop, ...next} => addEvents(target, next)
+  | list{} => Most.empty()
+  }
+}
+
+
+let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
   let fromEl = streamEl.el
   let fromNode = streamEl.vnode
+
+  let streamRef = ref(Most.empty())
 
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
@@ -69,6 +81,8 @@ let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>) => {
       Set.String.diff(toAttrNames, fromAttrNames)
       ->Set.String.toList
       ->deleteAttributes(toElement)
+
+      streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
     }
   | (Text(toElement), Text(fromElement)) =>
     if getTextContent(toElement) != getTextContent(fromElement) {
@@ -88,7 +102,7 @@ let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>) => {
   | (Element(toElement), Text(fromElement)) => ()
   }
 
-  ()
+  streamRef.contents
 }
 
 /*
