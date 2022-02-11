@@ -1,6 +1,5 @@
 open Belt
 open HTMLElement
-open Element
 open Event
 open Property
 
@@ -52,7 +51,26 @@ let rec addEvents = (target, props) => {
   }
 }
 
-let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
+let findChildElement = (children: array<HTMLElement.node>, fn: Dom.htmlElement => bool): option<(
+  Dom.htmlElement,
+  int,
+)> => {
+  Js.Array2.reducei(
+    children,
+    (acc: option<(Dom.htmlElement, int)>, cur: HTMLElement.node, idx: int) =>
+      switch cur {
+      | Element(el) =>
+        switch fn(el) {
+        | true => Some((el, idx))
+        | false => None
+        }
+      | _ => acc
+      },
+    None,
+  )
+}
+
+let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
   let fromEl = streamEl.el
   let fromNode = streamEl.vnode
 
@@ -82,12 +100,24 @@ let render = (toEl: Element.element, streamEl: Element.streamElement<'msg>): Mos
       // we always need to add events
       streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
 
-      let toChildren = getChildren(toElement)
-      let fromChildren = getChildren(fromElement)
+      let toChildren = getChildNodes(toElement)
+      let fromChildren = getChildNodes(fromElement)
       fromChildren->Js.Array2.forEachi((fromChild, idx) => {
-        let toChildElOpt = toChildren[idx]->Option.flatMap(HTMLElement.isElement)
+        // we will usually diff against this child
+        let toChildElOpt = toChildren[idx]->Option.flatMap(node => node->mapElement(el => el))
 
-        ()
+        // if the element has moved, this will be the toEl that had been displaced and what index it currently lives at
+        let childMoved = switch fromChild
+        ->mapElement(el => getAttribute(el, "data-key"))
+        ->Option.flatMap(v => v) {
+        | Some(fromKey) =>
+          findChildElement(toChildren, el =>
+            getAttribute(el, "data-key")
+            ->Option.map(toKey => toKey == fromKey)
+            ->Option.getWithDefault(false)
+          )
+        | None => None
+        }
       })
     }
   | (Text(toElement), Text(fromElement)) =>

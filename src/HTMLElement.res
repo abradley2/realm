@@ -57,19 +57,41 @@ let addEventListener = (el, ev, handler) => {
 }
 
 // Check Class
+type node =
+  | Element(Dom.htmlElement)
+  | Text(Dom.text)
+
+let mapElement = (n, fn) =>
+  switch n {
+  | Element(el) => fn(el)->Some
+  | Text(_) => None
+  }
+
+let mapText = (n, fn) =>
+  switch n {
+  | Element(_) => None
+  | Text(el) => fn(el)->Some
+  }
 
 let _isElement: Dom.node => Js.nullable<
-  Dom.htmlElement
+  Dom.htmlElement,
 > = %raw(`function (el) { if (el instanceof HTMLElement) { return el }; return null }`)
 let isElement = el => _isElement(el)->Js.toOption
 
 let _isText: Dom.node => Js.nullable<
-  Dom.text
+  Dom.text,
 > = %raw(`function (el) { if (el instanceof Text) { return el }; return null }`)
-let isText = (el) => _isText(el)->Js.toOption
+let isText = el => _isText(el)->Js.toOption
+
+let node = (el: Dom.node) =>
+  switch (isElement(el), isText(el)) {
+  | (Some(el), _) => Element(el)
+  | (_, Some(el)) => Text(el)
+  | _ => Js.Exn.raiseError("Invalid node")
+  }
 
 let _isInput: Dom.htmlElement => Js.nullable<
-    Dom.htmlInputElement
+  Dom.htmlInputElement,
 > = %raw(`function (el) { if (el instanceof HTMLInputElement) { return el }; return null }`)
 let isInput = el => _isInput(el)->Js.toOption
 
@@ -79,8 +101,8 @@ let isInput = el => _isInput(el)->Js.toOption
 
 // Attribute Getters and Setters
 
-@get external _getChildren: Dom.htmlElement => Js.Array2.array_like<Dom.node> = "children"
-let getChildren = el => _getChildren(el)->Js.Array2.from
+@get external _getChildNodes: Dom.htmlElement => Js.Array2.array_like<Dom.node> = "childNodes"
+let getChildNodes = el => _getChildNodes(el)->Js.Array2.from->Js.Array2.map(node)
 
 @get external getValue: Dom.htmlInputElement => string = "value"
 
@@ -96,8 +118,8 @@ let getChildren = el => _getChildren(el)->Js.Array2.from
 
 @set external setTextContent: (Dom.text, string) => unit = "textContent"
 
-@get external _getNextElementSibling: Dom.htmlElement => Js.null<Dom.element_like<'a>> = "nextElementSibling"
-let getNextElementSibling = (el) => _getNextElementSibling(el)->Js.nullToOption
+@get external _getNextSibling: Dom.htmlElement => Js.nullable<Dom.node> = "nextSibling"
+let getNextSibling = el => _getNextSibling(el)->Js.toOption->Option.map(node)
 
 type attr = {
   name: string,

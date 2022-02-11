@@ -2,11 +2,11 @@ open Belt
 open Property
 
 let applyEvent = (ev: event<'msg>, target: Dom.htmlElement): Most.stream<'msg> => {
-  run: (. sink, scheduler) => {
+  run: (sink) => {
     let (handleEvent, eventName) = switch ev {
     | OnClick(msg) => (
         (_e: Dom.event) => {
-          sink.event(. scheduler.currentTime(), msg)
+          sink.event(msg)
         },
         "click",
       )
@@ -17,7 +17,7 @@ let applyEvent = (ev: event<'msg>, target: Dom.htmlElement): Most.stream<'msg> =
             ->HTMLElement.getTarget
             ->HTMLElement.isInput
             ->Option.mapWithDefault("", HTMLElement.getValue)
-          sink.event(. scheduler.currentTime(), fn(value))
+          sink.event(fn(value))
         },
         "input",
       )
