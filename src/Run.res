@@ -1,10 +1,9 @@
 open HTMLElement
-open Element
 
 type application<'msg, 'model> = {
   init: 'model,
   update: ('model, 'msg) => 'model,
-  view: 'model => vnode<'msg>,
+  view: 'model => Element.vnode<'msg>,
 }
 
 exception InvalidRoot(string)
@@ -37,7 +36,7 @@ let run = (app: application<'msg, 'model>, msg: 'msg, hostEl: Dom.htmlElement): 
     let nextModel = app.update(prevModel, msg)
     {
       seed: nextModel,
-      value: app.view(nextModel)->createElement,
+      value: app.view(nextModel)->Element.createElement,
     }
   }, app.init)
 
