@@ -102,6 +102,7 @@ let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'m
 
       let toChildren = getChildNodes(toElement)
       let fromChildren = getChildNodes(fromElement)
+
       fromChildren->Js.Array2.forEachi((fromChild, idx) => {
         // we will usually diff against this child
         let toChildElOpt = toChildren[idx]->Option.flatMap(node => node->mapElement(el => el))
@@ -117,6 +118,11 @@ let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'m
             ->Option.getWithDefault(false)
           )
         | None => None
+        }
+
+        switch childMoved {
+        | Some(toChild, toChildIdx) => ()
+        | None => ()
         }
       })
     }
