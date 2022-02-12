@@ -45,7 +45,7 @@ let rec addChildren = (el, children) => {
   switch children {
   | list{} => ()
   | list{Element(child), ...next} =>
-    HTMLElement.appendChild(el, child)->(() => addChildren(el, next))
+    HTMLElement.appendChild(el, child->liftElement)->(() => addChildren(el, next))
   | list{Text(child), ...next} => HTMLElement.appendText(el, child)->(() => addChildren(el, next))
   }
 }

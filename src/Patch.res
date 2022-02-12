@@ -51,26 +51,20 @@ let rec addEvents = (target, props) => {
   }
 }
 
-let findChildElement = (children: array<HTMLElement.node>, fn: Dom.htmlElement => bool): option<(
+let rec findChildElement = (children: list<HTMLElement.node>, fn: Dom.htmlElement => bool): option<
   Dom.htmlElement,
-  int,
-)> => {
-  Js.Array2.reducei(
-    children,
-    (acc: option<(Dom.htmlElement, int)>, cur: HTMLElement.node, idx: int) =>
-      switch cur {
-      | Element(el) =>
-        switch fn(el) {
-        | true => Some((el, idx))
-        | false => None
-        }
-      | _ => acc
-      },
-    None,
-  )
-}
+> =>
+  switch children {
+  | list{} => None
+  | list{Element(child), ...next} =>
+    switch fn(child) {
+    | true => Some(child)
+    | false => findChildElement(next, fn)
+    }
+  | list{(Text(_text)), ...next} => findChildElement(next, fn)
+  }
 
-let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
+let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
   let fromEl = streamEl.el
   let fromNode = streamEl.vnode
 
@@ -103,9 +97,12 @@ let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'m
       let toChildren = getChildNodes(toElement)
       let fromChildren = getChildNodes(fromElement)
 
-      fromChildren->Js.Array2.forEachi((fromChild, idx) => {
+      let toParent = toElement->liftElement->getParent
+
+      fromChildren->List.forEachWithIndex((idx, fromChild) => {
         // we will usually diff against this child
-        let toChildElOpt = toChildren[idx]->Option.flatMap(node => node->mapElement(el => el))
+        let toSibling = toParent->getChildNodeAt(idx)
+        let toStreamEl = streamEl.children->List.get(idx)
 
         // if the element has moved, this will be the toEl that had been displaced and what index it currently lives at
         let childMoved = switch fromChild
@@ -121,8 +118,40 @@ let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'m
         }
 
         switch childMoved {
-        | Some(toChild, toChildIdx) => ()
-        | None => ()
+ 
+        | Some(childMoved) => {
+            removeChild(toParent, childMoved->liftElement)
+            // if the moved element has an existing sibling, we can insertBefore on that to put it in the correct place
+            switch toSibling {
+            | Some(toSibling) => insertBefore(childMoved->liftElement, toSibling->toDomNode)
+            // otherwise that means the we're at the end of the child list and we need to append
+            | None => appendChild(toParent, childMoved->liftElement)
+            }
+          }
+
+        | None => {
+            switch toSibling {
+            // if there's no sibling we have to create one
+            | None => fromChild->toDomNode->cloneNode(true)->appendChild(toParent, _)
+            // otherwise we have a match, no additional work is needed, we can go straight to diff/patch
+            | Some(_) => ()
+            }
+            ()
+          }
+        }
+
+        let targetChild = switch childMoved {
+        | Some(child) => Element(child)
+        | None => toParent->getChildNodeAt(idx)->Option.getExn
+        }
+        
+        switch toStreamEl {
+        | Some(toStreamEl) => {
+            // TODO: need to make this call tail-recursive
+            let result = render(targetChild, toStreamEl)
+            streamRef.contents = result->Most.merge(streamRef.contents)
+          }
+        | None => Js.Exn.raiseError("toStreamEl not found")
         }
       })
     }
@@ -134,12 +163,7 @@ let render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'m
       Text(toElement),
       Element(fromElement),
     ) => // if the tag has changed we need an entirely new element
-    // if (tag !== domNode.tagName.toLowerCase()) {
-    //   const newDomNode = document.createElement(tag)
-    //   domNode.parentNode.replaceChild(newDomNode, domNode)
-    //   render(virtualNode, newDomNode, activeComponent)
-    //   return
-    // }
+
     ()
   | (Element(toElement), Text(fromElement)) => ()
   }

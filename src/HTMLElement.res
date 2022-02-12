@@ -23,10 +23,10 @@ let querySelector = (el, q) => _querySelector(el, q)->Js.toOption
 
 // Transform Elements
 @send
-external insertBefore: (Dom.htmlElement, Dom.htmlElement) => unit = "insertBefore"
+external insertBefore: (Dom.node, Dom.node) => unit = "insertBefore"
 
 @send
-external appendChild: (Dom.htmlElement, Dom.htmlElement) => unit = "appendChild"
+external appendChild: (Dom.htmlElement, Dom.node) => unit = "appendChild"
 
 @send
 external appendText: (Dom.htmlElement, Dom.text) => unit = "appendChild"
@@ -60,6 +60,15 @@ let addEventListener = (el, ev, handler) => {
 type node =
   | Element(Dom.htmlElement)
   | Text(Dom.text)
+
+external liftElement: Dom.htmlElement => Dom.node = "%identity"
+external liftText: Dom.text => Dom.node = "%identity"
+
+let toDomNode = node =>
+  switch node {
+  | Element(el) => liftElement(el)
+  | Text(text) => liftText(text)
+  }
 
 let mapElement = (n, fn) =>
   switch n {
@@ -101,8 +110,10 @@ let isInput = el => _isInput(el)->Js.toOption
 
 // Attribute Getters and Setters
 
-@get external _getChildNodes: Dom.htmlElement => Js.Array2.array_like<Dom.node> = "childNodes"
-let getChildNodes = el => _getChildNodes(el)->Js.Array2.from->Js.Array2.map(node)
+@get external _getChildNodes: Dom.htmlElement => array<Dom.node> = "childNodes"
+let getChildNodes = el => _getChildNodes(el)->List.fromArray->List.map(node)
+
+let getChildNodeAt = (el, idx) => _getChildNodes(el)[idx]->Option.map(node)
 
 @get external getValue: Dom.htmlInputElement => string = "value"
 
@@ -121,10 +132,14 @@ let getChildNodes = el => _getChildNodes(el)->Js.Array2.from->Js.Array2.map(node
 @get external _getNextSibling: Dom.htmlElement => Js.nullable<Dom.node> = "nextSibling"
 let getNextSibling = el => _getNextSibling(el)->Js.toOption->Option.map(node)
 
+@get external getParent: Dom.node => Dom.htmlElement = "parentNode"
+
 type attr = {
   name: string,
   value: string,
 }
+
+@send external removeChild: (Dom.htmlElement, Dom.node) => unit = "removeChild"
 
 @get external _getAttributes: Dom.htmlElement => Js.Array2.array_like<attr> = "attributes"
 let getAttributes = el => _getAttributes(el)->Js.Array2.from
@@ -135,3 +150,5 @@ let getAttributesMap = el =>
 
     attrMap
   }, HashMap.String.fromArray([]))
+
+@send external cloneNode: (Dom.node, bool) => Dom.node = "cloneNode"

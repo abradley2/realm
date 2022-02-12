@@ -5,7 +5,7 @@ open Belt
 
 let el = HTMLElement.createElement("div")
 
-HTMLElement.body->HTMLElement.appendChild(el)
+HTMLElement.body->HTMLElement.appendChild(el->HTMLElement.liftElement)
 
 let myArray = [1, 2, 3, 4]
 
