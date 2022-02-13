@@ -17,8 +17,3 @@ let readAttribute = (key: string, val: string): attribute => {
   }
 }
 
-let toAttributesMap = (attributes: list<attribute>): HashMap.String.t<string> => 
-  attributes->List.reduce(HashMap.String.make(~hintSize=List.length(attributes)), (map, attribute) => {
-
-    map
-  })

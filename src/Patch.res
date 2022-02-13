@@ -76,8 +76,16 @@ let rec render = (
 
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
+      if (tagName(toElement) != tagName(fromElement)) {
+        let toNode = liftElement(toElement)
+        let fromNode = liftElement(fromElement)
+        getParent(toNode)->replaceChild(fromNode, toNode)
+        let _ = render(node(fromNode), virtualElement, streamRef)
+        ()
+      }
+
       let toAttrs = getAttributesMap(toElement)
-      let fromAttrs = getAttributesMap(fromElement)
+      let fromAttrs = Property.toAttributesMap(virtualElement.vnode.properties)
 
       let toAttrNames = toAttrs->HashMap.String.keysToArray->Set.String.fromArray
       let fromAttrNames = fromAttrs->HashMap.String.keysToArray->Set.String.fromArray
@@ -146,20 +154,27 @@ let rec render = (
         }
 
         // TODO: need to make this call tail-recursive
-        let result = render(targetChild, fromVChild, streamRef)
+        render(targetChild, fromVChild, streamRef)
       })
     }
   | (Text(toElement), Text(fromElement)) =>
     if getTextContent(toElement) != getTextContent(fromElement) {
       setTextContent(toElement, getTextContent(fromElement))
     }
-  | (
-      Text(toElement),
-      Element(fromElement),
-    ) => // if the tag has changed we need an entirely new element
-
+  | (Text(toElement), Element(fromElement)) => {
+    let toNode = liftText(toElement)
+    let fromNode = liftElement(fromElement)
+    getParent(toNode)->replaceChild(fromNode, toNode)
+    let _ = render(node(fromNode), virtualElement, streamRef)
     ()
-  | (Element(toElement), Text(fromElement)) => ()
+  }
+  | (Element(toElement), Text(fromElement)) => {
+    let toNode = liftElement(toElement)
+    let fromNode = liftText(fromElement)
+    getParent(toNode)->replaceChild(fromNode, toNode)
+    let _ = render(node(fromNode), virtualElement, streamRef)
+    ()
+  }
   }
 
   streamRef.contents

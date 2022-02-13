@@ -149,6 +149,10 @@ let getAttributesMap = el =>
     attrMap->HashMap.String.set(attr.name, attr.value)
 
     attrMap
-  }, HashMap.String.fromArray([]))
+  }, HashMap.String.make(~hintSize=8))
 
 @send external cloneNode: (Dom.node, bool) => Dom.node = "cloneNode"
+
+@send external replaceChild: (Dom.htmlElement, Dom.node, Dom.node) => unit = "replaceChild"
+
+@get external tagName: Dom.htmlElement => string = "tagName"
