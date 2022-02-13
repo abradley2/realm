@@ -2,6 +2,8 @@ open Belt
 open HTMLElement
 open Event
 open Property
+open VirtualElement
+open Most
 
 let rec patchAttributes = (
   attrs: list<string>,
@@ -61,14 +63,16 @@ let rec findChildElement = (children: list<HTMLElement.node>, fn: Dom.htmlElemen
     | true => Some(child)
     | false => findChildElement(next, fn)
     }
-  | list{(Text(_text)), ...next} => findChildElement(next, fn)
+  | list{Text(_text), ...next} => findChildElement(next, fn)
   }
 
-let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.stream<'msg> => {
-  let fromEl = streamEl.el
-  let fromNode = streamEl.vnode
-
-  let streamRef = ref(Most.empty())
+let rec render = (
+  toEl: node,
+  virtualElement: virtualElement<'msg>,
+  streamRef: ref<stream<'msg>>,
+): stream<'msg> => {
+  let fromEl = virtualElement.el
+  let fromNode = virtualElement.vnode
 
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
@@ -95,17 +99,14 @@ let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.strea
       streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
 
       let toChildren = getChildNodes(toElement)
-      let fromChildren = getChildNodes(fromElement)
-
       let toParent = toElement->liftElement->getParent
 
-      fromChildren->List.forEachWithIndex((idx, fromChild) => {
+      virtualElement.children->List.forEachWithIndex((idx, fromVChild) => {
         // we will usually diff against this child
         let toSibling = toParent->getChildNodeAt(idx)
-        let toStreamEl = streamEl.children->List.get(idx)
 
         // if the element has moved, this will be the toEl that had been displaced and what index it currently lives at
-        let childMoved = switch fromChild
+        let childMoved = switch fromVChild.el
         ->mapElement(el => getAttribute(el, "data-key"))
         ->Option.flatMap(v => v) {
         | Some(fromKey) =>
@@ -118,7 +119,6 @@ let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.strea
         }
 
         switch childMoved {
- 
         | Some(childMoved) => {
             removeChild(toParent, childMoved->liftElement)
             // if the moved element has an existing sibling, we can insertBefore on that to put it in the correct place
@@ -132,7 +132,7 @@ let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.strea
         | None => {
             switch toSibling {
             // if there's no sibling we have to create one
-            | None => fromChild->toDomNode->cloneNode(true)->appendChild(toParent, _)
+            | None => fromVChild.el->toDomNode->cloneNode(true)->appendChild(toParent, _)
             // otherwise we have a match, no additional work is needed, we can go straight to diff/patch
             | Some(_) => ()
             }
@@ -144,15 +144,9 @@ let rec render = (toEl: node, streamEl: Element.streamElement<'msg>): Most.strea
         | Some(child) => Element(child)
         | None => toParent->getChildNodeAt(idx)->Option.getExn
         }
-        
-        switch toStreamEl {
-        | Some(toStreamEl) => {
-            // TODO: need to make this call tail-recursive
-            let result = render(targetChild, toStreamEl)
-            streamRef.contents = result->Most.merge(streamRef.contents)
-          }
-        | None => Js.Exn.raiseError("toStreamEl not found")
-        }
+
+        // TODO: need to make this call tail-recursive
+        let result = render(targetChild, fromVChild, streamRef)
       })
     }
   | (Text(toElement), Text(fromElement)) =>

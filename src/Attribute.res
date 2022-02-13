@@ -1,4 +1,5 @@
 open Property
+open Belt
 
 let applyAttribute = (attr: attribute, target: Dom.htmlElement): unit => {
   switch attr {
@@ -15,3 +16,9 @@ let readAttribute = (key: string, val: string): attribute => {
   | _ => Data(key, val)
   }
 }
+
+let toAttributesMap = (attributes: list<attribute>): HashMap.String.t<string> => 
+  attributes->List.reduce(HashMap.String.make(~hintSize=List.length(attributes)), (map, attribute) => {
+
+    map
+  })

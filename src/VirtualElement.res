@@ -11,9 +11,17 @@ type rec vnode<'msg> = {
   children: list<vnode<'msg>>,
 }
 
-let createVnode = (tag: string, properties: list<property<'msg>>, children: list<vnode<'msg>>): vnode<
-  'msg,
-> => {
+type rec virtualElement<'msg> = {
+  el: HTMLElement.node,
+  vnode: vnode<'msg>,
+  children: list<virtualElement<'msg>>,
+}
+
+let createVnode = (
+  tag: string,
+  properties: list<property<'msg>>,
+  children: list<vnode<'msg>>,
+): vnode<'msg> => {
   tag: tag,
   content: None,
   properties: properties,
@@ -25,20 +33,6 @@ let text = content => {
   content: Some(content),
   properties: list{},
   children: list{},
-}
-
-type rec streamElement<'msg> = {
-  el: HTMLElement.node,
-  vnode: vnode<'msg>,
-  children: list<streamElement<'msg>>,
-  stream: Most.stream<'msg>,
-}
-
-let rec combineStreams = all => {
-  switch all {
-  | list{} => Most.empty()
-  | list{x, ...xs} => Most.merge(x, combineStreams(xs))
-  }
 }
 
 let rec addChildren = (el, children) => {
@@ -67,17 +61,14 @@ let rec addEvents = (target, props) => {
   }
 }
 
-let rec createElement = (n: vnode<'msg>): streamElement<'msg> => {
+let rec createElement = (n: vnode<'msg>): virtualElement<'msg> => {
   switch n.tag {
   | "__text__" => {
       let el = n.content->Option.getWithDefault("")->HTMLElement.createTextNode
 
-      let stream = Most.empty()
-
       {
         el: Text(el),
         children: list{},
-        stream: stream,
         vnode: n,
       }
     }
@@ -86,15 +77,12 @@ let rec createElement = (n: vnode<'msg>): streamElement<'msg> => {
 
       let children = n.children->List.map(createElement)
 
-      let stream = addEvents(el, n.properties)
-
       addChildren(el, children->List.map(child => child.el))
       addAttributes(el, n.properties)
 
       {
         el: Element(el),
         children: children,
-        stream: children->List.map(child => child.stream)->combineStreams->Most.merge(stream),
         vnode: n,
       }
     }
