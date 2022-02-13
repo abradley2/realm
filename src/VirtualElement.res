@@ -61,7 +61,7 @@ let rec addEvents = (target, props) => {
   }
 }
 
-let rec createElement = (n: vnode<'msg>): virtualElement<'msg> => {
+let rec createVirtualElement = (n: vnode<'msg>): virtualElement<'msg> => {
   switch n.tag {
   | "__text__" => {
       let el = n.content->Option.getWithDefault("")->HTMLElement.createTextNode
@@ -75,7 +75,7 @@ let rec createElement = (n: vnode<'msg>): virtualElement<'msg> => {
   | tag => {
       let el = HTMLElement.createElement(tag)
 
-      let children = n.children->List.map(createElement)
+      let children = n.children->List.map(createVirtualElement)
 
       addChildren(el, children->List.map(child => child.el))
       addAttributes(el, n.properties)
