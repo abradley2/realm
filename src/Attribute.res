@@ -1,5 +1,4 @@
 open Property
-open Belt
 
 let applyAttribute = (attr: attribute, target: Dom.htmlElement): unit => {
   switch attr {

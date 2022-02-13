@@ -1,4 +1,32 @@
 open Belt
+open Run
+open VirtualElement
+open HTMLElement
+open Property
+
+let app: application<int, int> = {
+  init: 0,
+  update: (model, msg) => model + msg,
+  view: model => div(
+    list{},
+    list{
+      button(
+        list{
+          onClick(1)
+        },
+        list{
+          text("Clicked " ++ Int.toString(model) ++ " times")
+        }
+      )
+    }
+  )
+}
+
+let el = createElement("div")
+
+let _  = body->appendChild(el->liftElement)
+
+let _ = run(app, 0, el)
 
 let a = [1, 2, 3, 4, 5, 6, 7]->Js.Array2.reduce((acc, cur) => {
   Int.toString(cur)->HashMap.String.set(acc, _, "true")
