@@ -74,9 +74,14 @@ let rec render = (
   let fromEl = virtualElement.el
   let fromNode = virtualElement.vnode
 
+  Js.log("Render start")
+
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
+      Js.log3("Diff element ", toElement, fromElement)
+
       if (tagName(toElement) != tagName(fromElement)) {
+        Js.log("Tag mismatch")
         let toNode = liftElement(toElement)
         let fromNode = liftElement(fromElement)
         getParent(toNode)->replaceChild(fromNode, toNode)
@@ -106,6 +111,8 @@ let rec render = (
       // we always need to add events
       streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
 
+      Js.log("Attributes and events patched")
+
       let toChildren = getChildNodes(toElement)
       let toParent = toElement->liftElement->getParent
 
@@ -128,6 +135,7 @@ let rec render = (
 
         switch childMoved {
         | Some(childMoved) => {
+            Js.log2("Child moved, resolving", childMoved)
             removeChild(toParent, childMoved->liftElement)
             // if the moved element has an existing sibling, we can insertBefore on that to put it in the correct place
             switch toSibling {
@@ -154,14 +162,18 @@ let rec render = (
         }
 
         // TODO: need to make this call tail-recursive
+        Js.log3("Render child ", targetChild, fromVChild.el)
         render(targetChild, fromVChild, streamRef)
       })
     }
-  | (Text(toElement), Text(fromElement)) =>
+  | (Text(toElement), Text(fromElement)) => {
+    Js.log("Patch text")
     if getTextContent(toElement) != getTextContent(fromElement) {
       setTextContent(toElement, getTextContent(fromElement))
     }
+  }
   | (Text(toElement), Element(fromElement)) => {
+    Js.log("Transform text to element")
     let toNode = liftText(toElement)
     let fromNode = liftElement(fromElement)
     getParent(toNode)->replaceChild(fromNode, toNode)
@@ -169,6 +181,7 @@ let rec render = (
     ()
   }
   | (Element(toElement), Text(fromElement)) => {
+    Js.log("Transform element to text")
     let toNode = liftElement(toElement)
     let fromNode = liftText(fromElement)
     getParent(toNode)->replaceChild(fromNode, toNode)
