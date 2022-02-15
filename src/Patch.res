@@ -78,7 +78,7 @@ let rec render = (
 
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
-      Js.log3("Diff element ", toElement, fromElement)
+      Js.log3("Patch elements", toElement, fromElement)
 
       if (tagName(toElement) != tagName(fromElement)) {
         Js.log("Tag mismatch")
@@ -88,6 +88,8 @@ let rec render = (
         let _ = render(node(fromNode), virtualElement, streamRef)
         ()
       }
+
+      Js.log("Tag match")
 
       let toAttrs = getAttributesMap(toElement)
       let fromAttrs = Property.toAttributesMap(virtualElement.vnode.properties)
@@ -114,11 +116,12 @@ let rec render = (
       Js.log("Attributes and events patched")
 
       let toChildren = getChildNodes(toElement)
-      let toParent = toElement->liftElement->getParent
-
+      let toParent = toElement
+      Js.log3("Get parent and patch children", toElement, toParent)
+      
       virtualElement.children->List.forEachWithIndex((idx, fromVChild) => {
         // we will usually diff against this child
-        let toSibling = toParent->getChildNodeAt(idx)
+        let toSibling = toElement->getChildNodeAt(idx)
 
         // if the element has moved, this will be the toEl that had been displaced and what index it currently lives at
         let childMoved = switch fromVChild.el
@@ -148,13 +151,18 @@ let rec render = (
         | None => {
             switch toSibling {
             // if there's no sibling we have to create one
-            | None => fromVChild.el->toDomNode->cloneNode(true)->appendChild(toParent, _)
+            | None => {
+              Js.log("We need to append a new node")
+              fromVChild.el->toDomNode->cloneNode(true)->appendChild(toParent, _)
+            }
             // otherwise we have a match, no additional work is needed, we can go straight to diff/patch
             | Some(_) => ()
             }
             ()
           }
         }
+
+        Js.log3("To sibling, child node", toSibling, toParent->getChildNodeAt(idx))
 
         let targetChild = switch childMoved {
         | Some(child) => Element(child)
