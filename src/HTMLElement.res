@@ -16,6 +16,11 @@ external createElement: string => Dom.htmlElement = "createElement"
 @val @scope(("window", "document"))
 external createTextNode: string => Dom.text = "createTextNode"
 
+@val @scope(("window", "document"))
+external _getElementById : string => Js.nullable<Dom.htmlElement> = "getElementById"
+
+let getElementById = (id) => _getElementById(id)->Js.toOption
+
 @send
 external _querySelector: (Dom.htmlElement, string) => Js.null_undefined<Dom.htmlElement> =
   "querySelector"

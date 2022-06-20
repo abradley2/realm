@@ -16,8 +16,19 @@ let runDomDiff = (fromEl: Dom.htmlElement, virtualElement: virtualElement<'msg>)
   stream.contents
 }
 
+let _rootId = ref(0)
+
+let getRootId = () => {
+  _rootId.contents = _rootId.contents + 1
+  "realm-root-element--" ++ Belt.Int.toString(_rootId.contents)
+}
+
 let run = (app: application<'msg, 'model>, msg: 'msg, hostEl: Dom.htmlElement): disposable => {
   let eventSource: ref<'msg => unit> = ref(_msg => ())
+
+  let rootId = getRootId()
+
+  hostEl->setAttribute(rootId, "true")
 
   let eventStream: stream<'msg> = {
     run: sink => {
@@ -44,7 +55,17 @@ let run = (app: application<'msg, 'model>, msg: 'msg, hostEl: Dom.htmlElement): 
 
   let applicationSink: sink<virtualElement<'msg>> = {
     event: virtualElement => {
-      let stream = runDomDiff(hostEl, virtualElement)
+      let renderRoot = switch querySelector(document, "[" ++ rootId ++ "]") {
+      | Some(el) => el
+      | None => raise(InvalidRoot("No root element found"))
+      }
+
+      let stream = runDomDiff(renderRoot, virtualElement)
+
+      switch virtualElement.el {
+        | Element(el) => el->setAttribute(rootId, "true")
+        | _ => ()
+      }
 
       let nextEvent = stream->take(1)
 

@@ -26,7 +26,10 @@ let rec patchAttributes = (
 let rec deleteAttributes = (attrs: list<string>, toEl: Dom.htmlElement) =>
   switch attrs {
   | list{} => ()
-  | list{attr, ...next} => {
+  | list{attr, ...next} =>
+    if Js.String.includes("realm-root-element--", attr) {
+      deleteAttributes(next, toEl)
+    } else {
       removeAttribute(toEl, attr)
       deleteAttributes(next, toEl)
     }
@@ -74,22 +77,14 @@ let rec render = (
   let fromEl = virtualElement.el
   let fromNode = virtualElement.vnode
 
-  Js.log("Render start")
-
   switch (toEl, fromEl) {
   | (Element(toElement), Element(fromElement)) => {
-      Js.log3("Patch elements", toElement, fromElement)
-
-      if (tagName(toElement) != tagName(fromElement)) {
-        Js.log("Tag mismatch")
+      if tagName(toElement) != tagName(fromElement) {
         let toNode = liftElement(toElement)
         let fromNode = liftElement(fromElement)
         getParent(toNode)->replaceChild(fromNode, toNode)
         let _ = render(node(fromNode), virtualElement, streamRef)
-        ()
       }
-
-      Js.log("Tag match")
 
       let toAttrs = getAttributesMap(toElement)
       let fromAttrs = Property.toAttributesMap(virtualElement.vnode.properties)
@@ -113,12 +108,9 @@ let rec render = (
       // we always need to add events
       streamRef.contents = addEvents(toElement, fromNode.properties)->Most.merge(streamRef.contents)
 
-      Js.log("Attributes and events patched")
-
       let toChildren = getChildNodes(toElement)
       let toParent = toElement
-      Js.log3("Get parent and patch children", toElement, toParent)
-      
+
       virtualElement.children->List.forEachWithIndex((idx, fromVChild) => {
         // we will usually diff against this child
         let toSibling = toElement->getChildNodeAt(idx)
@@ -138,7 +130,6 @@ let rec render = (
 
         switch childMoved {
         | Some(childMoved) => {
-            Js.log2("Child moved, resolving", childMoved)
             removeChild(toParent, childMoved->liftElement)
             // if the moved element has an existing sibling, we can insertBefore on that to put it in the correct place
             switch toSibling {
@@ -150,11 +141,7 @@ let rec render = (
 
         | None => {
             switch toSibling {
-            // if there's no sibling we have to create one
-            | None => {
-              Js.log("We need to append a new node")
-              fromVChild.el->toDomNode->cloneNode(true)->appendChild(toParent, _)
-            }
+            | None => fromVChild.el->toDomNode->cloneNode(true)->appendChild(toParent, _)
             // otherwise we have a match, no additional work is needed, we can go straight to diff/patch
             | Some(_) => ()
             }
@@ -162,232 +149,33 @@ let rec render = (
           }
         }
 
-        Js.log3("To sibling, child node", toSibling, toParent->getChildNodeAt(idx))
-
         let targetChild = switch childMoved {
         | Some(child) => Element(child)
         | None => toParent->getChildNodeAt(idx)->Option.getExn
         }
 
         // TODO: need to make this call tail-recursive
-        Js.log3("Render child ", targetChild, fromVChild.el)
         render(targetChild, fromVChild, streamRef)
       })
     }
-  | (Text(toElement), Text(fromElement)) => {
-    Js.log("Patch text")
-    if getTextContent(toElement) != getTextContent(fromElement) {
+  | (Text(toElement), Text(fromElement)) => if (
+      getTextContent(toElement) != getTextContent(fromElement)
+    ) {
       setTextContent(toElement, getTextContent(fromElement))
     }
-  }
   | (Text(toElement), Element(fromElement)) => {
-    Js.log("Transform text to element")
-    let toNode = liftText(toElement)
-    let fromNode = liftElement(fromElement)
-    getParent(toNode)->replaceChild(fromNode, toNode)
-    let _ = render(node(fromNode), virtualElement, streamRef)
-    ()
-  }
+      let toNode = liftText(toElement)
+      let fromNode = liftElement(fromElement)
+      getParent(toNode)->replaceChild(fromNode, toNode)
+      let _ = render(node(fromNode), virtualElement, streamRef)
+    }
   | (Element(toElement), Text(fromElement)) => {
-    Js.log("Transform element to text")
-    let toNode = liftElement(toElement)
-    let fromNode = liftText(fromElement)
-    getParent(toNode)->replaceChild(fromNode, toNode)
-    let _ = render(node(fromNode), virtualElement, streamRef)
-    ()
-  }
+      let toNode = liftElement(toElement)
+      let fromNode = liftText(fromElement)
+      getParent(toNode)->replaceChild(fromNode, toNode)
+      let _ = render(node(fromNode), virtualElement, streamRef)
+    }
   }
 
   streamRef.contents
 }
-
-/*
-function render (virtualNode, domNode, activeComponent) {
-  const {
-    tagOrComponent,
-    props,
-    children,
-    text
-  } = virtualNode
-
-  virtualNode.domNode = domNode
-
-  // let's handle components!
-  if (tagOrComponent.constructor === Function) {
-    // check if we're at a new root component for our render tree
-    if (tagOrComponent !== (hooks.activeComponentNode() && hooks.activeComponentNode().tagOrComponent)) {
-      hooks.hooksCache({})
-      hooks.activeComponentNode(virtualNode)
-    }
-
-    const componentNode = tagOrComponent(props, virtualNode)
-    if (!domNode) {
-      // we don't have a dom node and it's a component, we need to render and
-      // return the vdom of the component to the parent cycle of this render
-      // function so it can mount it
-      return componentNode
-    }
-    render(componentNode, domNode, tagOrComponent)
-    return
-  }
-
-  const tag = tagOrComponent
-
-  // it's a text node! these are easy to handle
-  if (!domNode.tagName) {
-    if (text !== domNode.textContent) {
-      domNode.textContent = text
-    }
-    return
-  }
-
-  // if the tag has changed we need an entirely new element
-  if (tag !== domNode.tagName.toLowerCase()) {
-    const newDomNode = document.createElement(tag)
-    domNode.parentNode.replaceChild(newDomNode, domNode)
-    render(virtualNode, newDomNode, activeComponent)
-    return
-  }
-
-  // now we need to diff/set props to attributes. This is pretty easy
-  Object.keys(props).forEach((propName) => {
-    const propValue = props[propName]
-
-    // skip children
-    if (propName === 'children') {
-      return
-    }
-
-    // add event handlers directly to the domNode
-    if (typeof propValue === 'function') {
-      if (!eventHandlers.includes(propName)) {
-        eventHandlers.push(propName)
-      }
-      domNode[propName] = propValue
-      return
-    }
-
-    // handle id and className as special cases, everything else
-    // is just set attribute from here
-    switch (domProperties.includes(propName)) {
-      case true:
-        domNode[propName] = propValue
-        break
-      default:
-        domNode.setAttribute(propName, propValue)
-    }
-  })
-
-  // if there are attributes in the domNode that are no longer in props
-  // those need to be unset
-  if (domNode.hasAttributes()) {
-    for (let i = 0; i < domNode.attributes.length; i++) {
-      const { name: attrName, value: attrValue } = domNode.attributes[i]
-
-      // class- a pain in the ass
-      if (attrName === 'class') {
-        if (!props.className && domNode.className) {
-          domNode.className = ''
-          continue
-        }
-      }
-
-      if (domProperties.includes(attrName)) {
-        if (!props[attrName] && domNode[attrName]) {
-          domNode[attrName] = undefined
-          continue
-        }
-      }
-
-      if (typeof props[attrName] === 'undefined' && attrValue) {
-        domNode.removeAttribute(attrName)
-      }
-    }
-  }
-
-  // handle event handlers
-  eventHandlers.forEach((handlerName) => {
-    if (!props[handlerName] && domNode[handlerName]) {
-      domNode[handlerName] = undefined
-    }
-  })
-
-  // add and edit children as needed
-  children.forEach((virtualChild, idx) => {
-    let domSibling = domNode.childNodes[idx]
-    const nextSibling = domNode.childNodes[idx + 1]
-
-    if (!virtualChild) {
-      return
-    }
-
-    // first let's check if children has been "re-arranged"
-    // and if we can use the "key" optimization
-    let childMoved = false
-    if (virtualChild.props.key) {
-      // check if there's a key match
-      domSibling = [...domNode.childNodes].find((node, searchIdx) => {
-        const match = node.getAttribute('key') === virtualChild.props.key
-        if (match && idx !== searchIdx) {
-          childMoved = true
-        }
-        return match
-      }) || domSibling
-    }
-
-    // handle child move using cached keyed dom node
-    if (childMoved) {
-      domNode.removeChild(domSibling)
-      // we need to re-compute this as the previous nextSibling
-      // could be the key-match which we have just removed
-      const newNextSibling = domNode.childNodes[idx + 1]
-      if (newNextSibling) {
-        domNode.insertBefore(domSibling, nextSibling)
-      } else {
-        domNode.appendChild(domSibling)
-      }
-    }
-
-    // handle no matching host node
-    if (!domSibling && virtualChild.tagOrComponent.constructor === String) {
-      domSibling = virtualChild.tagOrComponent === 'TEXT_NODE'
-        ? document.createTextNode(virtualChild.children[0])
-        : document.createElement(virtualChild.tagOrComponent)
-      if (nextSibling) {
-        domNode.insertBefore(domSibling, nextSibling)
-      } else {
-        domNode.appendChild(domSibling)
-      }
-    }
-
-    // now that it is guaranteed to have found a real dom node sibling match
-    // each virtual child node can go through it's own render
-    let result = render(virtualChild, domSibling)
-
-    while (result) {
-      if (result.tagOrComponent.constructor === String) {
-        const hostEl = document.createElement(result.tagOrComponent)
-        hostEl.__hooksCache = hooks.hooksCache()
-
-        Object.assign(
-          hooks.activeComponentNode(),
-          { domNode: hostEl }
-        )
-
-        domNode.appendChild(hostEl)
-        render(result, hostEl, activeComponent)
-        result = undefined
-        continue
-      }
-
-      // we're at a new component in the heirarchy so we need to reset active component
-      hooks.activeComponentNode(undefined)
-      hooks.hooksCache({})
-      result = render(result, domSibling, activeComponent)
-    }
-  })
-
-  hooks.activeComponentNode(undefined)
-  hooks.hooksCache({})
-}
-*/
