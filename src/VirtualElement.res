@@ -230,3 +230,7 @@ let source_ = createVnode("source", list{}, _)
 let track = createVnode("track", _)
 let track' = createVnode("track", _, list{})
 let track_ = createVnode("track", list{}, _)
+
+let input = createVnode("input", _)
+let input' = createVnode("input", _, list{})
+let input_ = createVnode("input", list{}, _)
