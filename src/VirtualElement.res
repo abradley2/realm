@@ -11,6 +11,11 @@ type rec vnode<'msg> = {
   children: list<vnode<'msg>>,
 }
 
+let mapVnode = (vnode: vnode<'a>, fn: ('a => 'b)): vnode<'b> => {
+  ...vnode,
+  properties: vnode.properties->List.map(mapProperty(_, fn))
+}
+
 type rec virtualElement<'msg> = {
   el: HTMLElement.node,
   vnode: vnode<'msg>,

@@ -161,3 +161,6 @@ let getAttributesMap = el =>
 @send external replaceChild: (Dom.htmlElement, Dom.node, Dom.node) => unit = "replaceChild"
 
 @get external tagName: Dom.htmlElement => string = "tagName"
+
+@get external _lastChild: Dom.htmlElement => Js.nullable<Dom.node> = "lastChild"
+let lastChild = el => _lastChild(el)->Js.toOption

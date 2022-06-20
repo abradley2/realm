@@ -9,9 +9,23 @@ type event<'msg> =
   | OnClick('msg)
   | OnInput(string => 'msg)
 
+let mapEvent = (e: event<'a>, fn: 'a => 'b): event<'b> => {
+  switch e {
+  | OnClick(msg) => fn(msg)->OnClick
+  | OnInput(onMsg) => (value => onMsg(value)->fn)->OnInput
+  }
+}
+
 type property<'msg> =
   | Attribute(attribute)
   | Event(event<'msg>)
+
+let mapProperty = (p: property<'a>, fn: 'a => 'b): property<'b> => {
+  switch p {
+  | Attribute(attr) => Attribute(attr)
+  | Event(e) => Event(mapEvent(e, fn))
+  }
+}
 
 // Attribute Creators
 let id = val => Id(val)->Attribute

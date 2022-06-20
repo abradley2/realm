@@ -157,10 +157,17 @@ let rec render = (
         // TODO: need to make this call tail-recursive
         render(targetChild, fromVChild, streamRef)
       })
+
+      // remove any children that are no longer in the virtual tree
+      while List.length(virtualElement.children) < List.length(getChildNodes(toElement)) {
+        switch lastChild(toElement) {
+        | Some(child) => removeChild(toElement, child)
+        | None => ()
+        }
+      }
     }
-  | (Text(toElement), Text(fromElement)) => if (
-      getTextContent(toElement) != getTextContent(fromElement)
-    ) {
+  | (Text(toElement), Text(fromElement)) =>
+    if getTextContent(toElement) != getTextContent(fromElement) {
       setTextContent(toElement, getTextContent(fromElement))
     }
   | (Text(toElement), Element(fromElement)) => {
