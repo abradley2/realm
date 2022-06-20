@@ -69,11 +69,15 @@ let run = (app: application<'msg, 'model>, msg: 'msg, hostEl: Dom.htmlElement): 
 
       let nextEvent = stream->take(1)
 
-      let _ = nextEvent.run({
+      let disposable = ref({ dispose: () => () })
+
+      disposable.contents = nextEvent.run({
         event: msg => {
           eventSource.contents(msg)
         },
-        end: () => (),
+        end: () => {
+          disposable.contents.dispose()
+        },
         error: err => {
           Js.Console.error(err)
         },
