@@ -3,6 +3,7 @@ open Belt
 type attribute =
   | Id(string)
   | ClassName(string)
+  | Value(string)
   | Data(string, string)
 
 type event<'msg> =
@@ -27,9 +28,16 @@ let mapProperty = (p: property<'a>, fn: 'a => 'b): property<'b> => {
   }
 }
 
+let mapProperties = (p: list<property<'a>>, fn: 'a => 'b): list<property<'b>> =>
+  p->List.map((property: property<'a>) => {
+    mapProperty(property, fn)
+  })
+
 // Attribute Creators
 let id = val => Id(val)->Attribute
 let className = val => ClassName(val)->Attribute
+let value = val => Value(val)->Attribute
+let attr = (name, val) => Data(name, val)->Attribute
 
 // Event Creators
 let onClick = msg => OnClick(msg)->Event
@@ -42,6 +50,7 @@ let toAttributesMap = (properties: list<property<'msg>>): HashMap.String.t<strin
         let (key, val) = switch attribute {
         | Id(val) => ("id", val)
         | ClassName(val) => ("class", val)
+        | Value(val) => ("value", val)
         | Data(key, val) => (key, val)
         }
         HashMap.String.set(map, key, val)

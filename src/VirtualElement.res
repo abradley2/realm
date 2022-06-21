@@ -11,11 +11,6 @@ type rec vnode<'msg> = {
   children: list<vnode<'msg>>,
 }
 
-let mapVnode = (vnode: vnode<'a>, fn: ('a => 'b)): vnode<'b> => {
-  ...vnode,
-  properties: vnode.properties->List.map(mapProperty(_, fn))
-}
-
 type rec virtualElement<'msg> = {
   el: HTMLElement.node,
   vnode: vnode<'msg>,
@@ -239,3 +234,16 @@ let track_ = createVnode("track", list{}, _)
 let input = createVnode("input", _)
 let input' = createVnode("input", _, list{})
 let input_ = createVnode("input", list{}, _)
+
+let rec mapVnode = (vnode, fn: 'a => 'b): vnode<'b> => {
+  let mappedVnode: vnode<'b> = {
+    tag: vnode.tag,
+    content: vnode.content,
+    children: List.map(vnode.children, (child: vnode<'a>): vnode<'b> => {
+      mapVnode(child, fn)
+    }),
+    properties: vnode.properties->List.map(mapProperty(_, fn))
+  }
+
+  mappedVnode
+}

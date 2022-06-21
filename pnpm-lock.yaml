@@ -1,4 +1,4 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 specifiers:
   '@most/core': ^1.6.1
@@ -6,6 +6,7 @@ specifiers:
   '@most/scheduler': ^1.3.0
   '@most/types': ^1.1.0
   browserify: ^17.0.0
+  gentype: ^4.4.0
   http-server: ^14.0.0
   morphdom: ^2.6.1
   rescript: ^9.1.4
@@ -19,6 +20,7 @@ dependencies:
 
 devDependencies:
   browserify: 17.0.0
+  gentype: 4.4.0
   http-server: 14.0.0
   rescript: 9.1.4
 
@@ -407,6 +409,11 @@ packages:
 
   /debug/3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
     dependencies:
       ms: 2.1.3
     dev: true
@@ -557,6 +564,12 @@ packages:
     resolution: {integrity: sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==}
     dev: true
 
+  /gentype/4.4.0:
+    resolution: {integrity: sha512-hLcKmMhD3DJzHffDqwYUkEZfdGSWJk6ehYmdzGHBs35mTJa2dhiAp31WqmhjkZIqKvD+A+gFEE+//QHG5dZfwg==}
+    hasBin: true
+    requiresBuild: true
+    dev: true
+
   /get-assigned-identifiers/1.2.0:
     resolution: {integrity: sha512-mBBwmeGTrxEMO4pMaaf/uUEFHnYtwr8FTe8Y/mer4rcV/bye0qGm6pw1bGZFGStxC5O76c5ZAVBGnqHmOaJpdQ==}
     dev: true
@@ -683,6 +696,7 @@ packages:
       url-join: 4.0.1
     transitivePeerDependencies:
       - debug
+      - supports-color
     dev: true
 
   /https-browserify/1.0.0:
@@ -1052,6 +1066,8 @@ packages:
       async: 2.6.3
       debug: 3.2.7
       mkdirp: 0.5.5
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /process-nextick-args/2.0.1:
