@@ -14,7 +14,7 @@ Unlike `rescript-react`, the Virtual DOM for this library is written entirely in
 
 Elements are defined by a DSL that mirrors that DOM. The output is known as a `vnode` type.
 
-```
+```example.res
 button(
     list{
         onClick("Hello world!"),
@@ -27,7 +27,7 @@ button(
 ```
 
 `vnode`s may omit an "attribute list" with the `_` suffix
-```
+```example.res
 div_(
     list{
         text("Hello world!")
@@ -37,7 +37,7 @@ div_(
 
 
 "Empty `vnode`s" should be represented as blank text nodes
-```
+```example.res
 switch showNode {
 | true => div_(
     list{text("Hello there")}
@@ -48,7 +48,7 @@ switch showNode {
 
 A typical application defines `init`, `msg`, `model`, `update` and `view`
 
-```
+```example.res
 type model = {
     count: int
 }
@@ -80,7 +80,7 @@ let app: application<msg, model> = {
 
 `vnodes` are functors and can be mapped. This is the main way to scale up an application
 
-```
+```example.res
 let countButton = (label: string): vnode<int> => button(list{onClick(1)}, list{text(label)})
 
 let countBy2Button = (model: model) =>
