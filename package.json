@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "rescript build && browserify src/Main.bs.js -o public/main.bundle.js",
+    "build": "rescript build && browserify src/Main.bs.js -o out/demo.bundle.js && uglifyjs out/demo.bundle.js -o out/demo.bundle.js",
     "serve": "npm run build && http-server public",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
